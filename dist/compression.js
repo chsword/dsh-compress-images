@@ -1,4 +1,3 @@
-import sharp from 'sharp';
 export const defaultOptions = {
     maxBytes: 200 * 1024,
     maxEdge: 1600,
@@ -39,6 +38,8 @@ export function needsCompression(image, options) {
     return image.bytes > options.maxBytes || Math.max(image.width, image.height) > options.maxEdge;
 }
 export async function compressImage(image, options, signal) {
+    signal.throwIfAborted();
+    const { default: sharp } = await import('sharp');
     signal.throwIfAborted();
     const source = sharp(image.data, { failOn: 'error', limitInputPixels: 64_000_000 });
     const metadata = await source.metadata();

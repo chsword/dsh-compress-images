@@ -10,6 +10,8 @@
 - Node.js **24.9.0 或更新版本**（DSH CLI 的要求）；也可使用 DSH Desktop 自带的兼容运行时。
 - `sharp` 支持的运行环境。Windows、macOS、Linux 的常见平台可使用其预编译依赖。
 
+插件固定使用 `sharp 0.35.5`，与上述 Desktop 版本内置依赖保持一致，避免 Windows 同一进程加载不同版本的 libvips DLL。原生模块仅在实际压缩时加载，不在插件启动时加载。升级 DSH 后需要重新验证依赖兼容性，不能仅凭 `sharp` 的 semver 范围判断 Windows DLL 可以共存。
+
 ## 安装
 
 ### 安装到 Desktop
@@ -43,6 +45,12 @@ dsh plugin --profile desktop add github:chsword/dsh-compress-images#完整提交
 ```
 
 安装仍会获取 `sharp` 等运行依赖。不要为了安装而全局放开不相关包的构建脚本权限；如果平台缺少预编译二进制，请按照 `sharp` 的平台安装说明处理。
+
+### Windows 提示 `ERR_DLOPEN_FAILED`
+
+如果错误包含 `The specified procedure could not be found`，可能是旧版插件的 `sharp 0.34.x` 与 Desktop 内置的 `0.35.5` 加载了不兼容的同名 libvips DLL，并不一定是缺少可选依赖。
+
+更新到包含此兼容修复的插件版本后，必须**彻底退出并重新打开 Desktop**，才能清除进程中已经加载的旧 DLL。不要直接在 Desktop 安装目录内执行 `npm install sharp`，这可能破坏应用自带依赖。此修复针对上述受支持的 Desktop 版本，不保证任意 `sharp`、`canvas` 或其他插件的原生依赖都可共存。
 
 ## 使用
 

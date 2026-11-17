@@ -1,4 +1,3 @@
-import sharp from 'sharp'
 import type { ImageMediaType, StoredImageAttachment } from '@deepseek-ai/dsh-attachment'
 
 export interface CompressionOptions {
@@ -62,6 +61,8 @@ export async function compressImage(
   options: CompressionOptions,
   signal: AbortSignal,
 ): Promise<CompressedImage> {
+  signal.throwIfAborted()
+  const { default: sharp } = await import('sharp')
   signal.throwIfAborted()
   const source = sharp(image.data, { failOn: 'error', limitInputPixels: 64_000_000 })
   const metadata = await source.metadata()

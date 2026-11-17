@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict'
+import { spawnSync } from 'node:child_process'
 import { createHash, randomBytes } from 'node:crypto'
 import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
@@ -13,6 +14,24 @@ import { compressHistory } from '../dist/command.js'
 import { parseOptions } from '../dist/compression.js'
 import { imageHistoryProjection } from '../dist/history.js'
 import * as plugin from '../dist/index.js'
+
+test('loading the plugin leaves native image libraries for the host to initialize', () => {
+  const result = spawnSync(process.execPath, ['--input-type=module', '-e', String.raw`
+    import assert from 'node:assert/strict'
+    import { createRequire } from 'node:module'
+    const require = createRequire(${JSON.stringify(import.meta.url)})
+    await import(${JSON.stringify(new URL('../dist/index.js', import.meta.url).href)})
+    const loaded = Object.keys(require.cache).filter(file => /[/\\](?:sharp|@img)[/\\]/.test(file))
+    assert.deepEqual(loaded, [], 'Plugin registration must not preload sharp or its DLLs')
+    const sharp = require('sharp')
+    const data = await sharp({
+      create: { width: 8, height: 8, channels: 3, background: 'white' },
+    }).webp().toBuffer()
+    assert.equal((await sharp(data).metadata()).format, 'webp')
+  `], { encoding: 'utf8', timeout: 30_000, windowsHide: true })
+  assert.ifError(result.error)
+  assert.equal(result.status, 0, result.stderr)
+})
 
 async function fixture(t) {
   const directory = await mkdtemp(join(tmpdir(), 'dsh-compress-images-'))
